@@ -13,11 +13,11 @@ import subprocess
 from pathlib import Path
 import re
 import getpass
-import nibabel as nib
+
+
 #-------------------------------------------------------------------------------------------------------------------------#
 #                                             Defining Functions
 #-------------------------------------------------------------------------------------------------------------------------#
-
 
 # Function for Motion Correction using nypipe: AFNI's 3dvolreg
 def smooth_movavg(in_file, out_file, win_sec_duration, tr):
@@ -48,15 +48,15 @@ def smooth_movavg(in_file, out_file, win_sec_duration, tr):
 
 def process_raw_data(in_path, scan_number):
   raw_data_path = os.path.join(in_path, scan_number)
-  print(f"Raw Data Path: {raw_data_path}")
+  print_statement(f"Raw Data Path: {raw_data_path}", bcolors.NOTIFICATION)
 
   params = func_param_extract(raw_data_path, export_env=True)
   SequenceName = params["SequenceName"]
   
   analysed_folder_name = os.path.join(analysed_path, str(scan_number) + SequenceName)
-  print(f"Analysed Data Path: {analysed_folder_name}")
+  print_statement(f"Analysed Data Path: {analysed_folder_name}", bcolors.NOTIFICATION)
   if os.path.exists(analysed_folder_name):
-    print("Analysed Data Path exists.")
+    print_statement("Analysed Data Path exists.", bcolors.OKGREEN)
   else:
     os.makedirs(analysed_folder_name)
   
@@ -64,14 +64,12 @@ def process_raw_data(in_path, scan_number):
   cwd = os.getcwd()
 
   if os.path.exists(os.path.join(analysed_folder_name, "G1_cp_resampled.nii.gz")):
-    print("NIFTI file already exists. Skipping conversion.")
+    print_statement("NIFTI file already exists. Skipping conversion.", bcolors.OKGREEN)
   else:
     bruker_to_nifti(in_path, scan_number) 
 
 def bruker_to_nifti(in_path, scan_number):
     
-    print("Using brkraw to convert Bruker format to NIFTI")
-
     scan_dir = os.path.join(in_path, scan_number)
     method_file = os.path.join(scan_dir, "method")
 
@@ -89,7 +87,6 @@ def bruker_to_nifti(in_path, scan_number):
                     echo_str = line.split("=")[1].strip()
                     NoOfEchoImages = int(echo_str)
                     break
-        print(f"No of echo images {NoOfEchoImages}")
 
         # ---------- 3) If single echo ----------
         if NoOfEchoImages == 1:
@@ -107,12 +104,11 @@ def bruker_to_nifti(in_path, scan_number):
 
     else:
         # ---------- 5) No echo metadata ----------
-        print("No of Echoes not present")
         src_files = glob.glob(f"*{scan_number}*")
         for src in src_files:
             shutil.copy(src, "G1_cp.nii.gz")
 
-    print("\nFixing orientation to LPI\n")
+    print(f"{bcolors.NOTIFICATION}Fixing orientation to LPI{bcolors.ENDC}")
 
     # ---------- 6) Fix orientation to LPI using 3dresample ----------
     resample = afni.Resample()
@@ -125,7 +121,7 @@ def bruker_to_nifti(in_path, scan_number):
     with open("NIFTI_file_header_info.txt", "w") as out:
         subprocess.run(["fslhd", "G1_cp_resampled.nii.gz"], stdout=out, check=True)
 
-    print("[OK] Bruker → NIFTI workflow completed.")
+    print_statement(f"[OK] Bruker → NIFTI workflow completed.", bcolors.OKGREEN)
 
 def extract_middle_volume(in_file, reference_vol, out_file, size):
   extract_vol = fsl.ExtractROI()
@@ -221,7 +217,7 @@ def compute_mean_range(input_file, prefix, start_idx, end_idx):
     print("[INFO] Running:", " ".join(afni_cmd))
 
     subprocess.run(afni_cmd, check=True)
-    print("[OK] Mean baseline image saved as:", prefix)
+    print_statement("[OK] Mean baseline image saved.", bcolors.OKGREEN)
 
 def masking_file(input_file, mask_file, output_file):
   
@@ -232,7 +228,7 @@ def masking_file(input_file, mask_file, output_file):
 
   math.run()
 
-  print(f"[OK] Masked file saved → {output_file}")
+  print_statement(f"[OK] Masked file saved → {output_file}", bcolors.OKGREEN)
   return output_file
 
 def tSNR(input_file, output_file, reference_vol, size):
@@ -256,7 +252,7 @@ def tSNR(input_file, output_file, reference_vol, size):
   tSNR.inputs.out_file = output_file
   tSNR.run()
 
-  print(f"[OK] tSNR file saved → {output_file}")
+  print_statement(f"[OK] tSNR file saved → {output_file}", bcolors.OKGREEN)
   return output_file
 
 def spatial_smoothing(input_file, output_file, fwhm):
@@ -269,7 +265,7 @@ def spatial_smoothing(input_file, output_file, fwhm):
 
   smooth.run()
 
-  print(f"[OK] Spatially smoothed file saved → {output_file}")
+  print_statement(f"[OK] Spatially smoothed file saved → {output_file}", bcolors.OKGREEN)
   return output_file
 
 def signal_change_map(signal_file, baseline_file, output_file):
@@ -301,7 +297,7 @@ def signal_change_map(signal_file, baseline_file, output_file):
   os.remove(tmp_sub)
   os.remove(tmp_div)
 
-  print(f"[OK] Percent Signal Change Map saved → {output_file}")
+  print_statement(f"[OK] Percent Signal Change Map saved → {output_file}", bcolors.OKGREEN)
   return output_file
 
 def coregistration_afni(input_file1=None, input_file2=None, reference_file=None, output_file1=None, output_file2=None, estimate_affine=True, apply_affine=True, affine_mat="mean_func_struct_aligned.aff12.1D"):
@@ -349,27 +345,14 @@ def coregistration_afni(input_file1=None, input_file2=None, reference_file=None,
       coreg_with_affine.inputs.out_file = output_file2
       coreg_with_affine.run()
 
-      print(f"[OK] Affine applied → {output_file2}")
+      print_statement(f"[OK] Affine applied → {output_file2}", bcolors.OKGREEN)
       results["step2"] = output_file2
 
   return results
 
-def align_epi_anat_afni(reference_file, input_file):
-  al_ea = afni.AlignEpiAnatPy()
-  al_ea.inputs.anat = reference_file
-  al_ea.inputs.in_file = input_file
-  al_ea.inputs.epi_base = 0
-  al_ea.inputs.epi_strip = 'None'
-  al_ea.inputs.volreg = 'off'
-  al_ea.inputs.tshift = 'off'
-  al_ea.inputs.anat2epi = True
-  # al_ea.inputs.save_skullstrip = True
-  al_ea.epi_al_orig = 'aligned_epi.nii.gz'
-  res = al_ea.run() 
-
 def time_course_extraction(roi_file, func_file, output_file):
    
-    ts = nipype.interfaces.fsl.ImageMeants()
+    ts = fsl.ImageMeants()
     ts.inputs.in_file = func_file
     ts.inputs.mask = roi_file
     ts.inputs.out_file = output_file
@@ -423,9 +406,9 @@ def func_param_extract(scan_dir, export_env=True):
     MiddleVolume = None
 
     if NoOfRepetitions and TotalScanTime:
-        VolTR_msec = TotalScanTime // NoOfRepetitions
-        VolTR = VolTR_msec // 1000
-        MiddleVolume = NoOfRepetitions // 2
+        VolTR_msec = TotalScanTime / NoOfRepetitions
+        VolTR = VolTR_msec / 1000
+        MiddleVolume = NoOfRepetitions / 2
 
     # -----------------------------
     # Pack results
@@ -453,6 +436,21 @@ def func_param_extract(scan_dir, export_env=True):
 
     return params
 
+def print_header(message, color):
+    line = "*" * 134   # same width everywhere
+    width = len(line)
+
+    print()
+    print(f"{color}{line}{bcolors.ENDC}")
+    print(f"{color}{message.center(width)}{bcolors.ENDC}")
+    print(f"{color}{line}{bcolors.ENDC}")
+    print()
+
+def print_statement(message, color):
+    print(f"{color}{message}{bcolors.ENDC}")
+
+
+
 # -------------------------------------------------------------------------------------------------------------------------#
 #                                             Execution of Main Script
 #-------------------------------------------------------------------------------------------------------------------------#
@@ -474,25 +472,37 @@ if __name__ == "__main__":
 
   analysed_path = Path(str(in_path).replace("/RawData/", "/AnalysedData/"))
 
-  # Converting Bruker to NIFTI: Structural Data
+  class bcolors:
+      HEADER = '\033[95m'
+      OKBLUE = '\033[94m'
+      OKCYAN = '\033[96m'
+      OKGREEN = '\033[92m'
+      NOTIFICATION = '\033[93m'
+      FAIL = '\033[91m'
+      ENDC = '\033[0m'
+      BOLD = '\033[1m'
+      UNDERLINE = '\033[4m'
+
+  print_header("Converting Bruker to NIFTI: Both Structural and Functional Data", bcolors.HEADER)
 
   process_raw_data(in_path, struct_scan_number)
   process_raw_data(in_path, func_scan_number)
 
   # Applying Motion Correction on raw functional data and plotting motion parameters
-  path_raw_func = os.path.join(in_path, func_scan_number)
   
-  print(f"Functional Raw Data Path: {path_raw_func}")
+  print_header("Applying Motion Correction on raw functional data and plotting motion parameters", bcolors.HEADER)
+
+  path_raw_func = os.path.join(in_path, func_scan_number)
   params = func_param_extract(path_raw_func, export_env=True)
   SequenceName = params["SequenceName"]
+  tr = int(params["VolTR"])
   n_vols = params["NoOfRepetitions"]
   middle_vol = str(int(n_vols / 2))
 
   extract_middle_volume("G1_cp_resampled.nii.gz", int(middle_vol), "middle_vol.nii.gz", 1)
-  print("[OK] Middle volume extracted.")
 
   if os.path.exists("mc_func.nii.gz"):
-    print("Motion Corrected functional data exists. Skipping motion correction.")
+    print(f"{bcolors.OKGREEN}Motion Corrected functional data exists. Skipping motion correction.{bcolors.ENDC}")
   else:
     motion_correction("middle_vol.nii.gz", input_vol="G1_cp_resampled.nii.gz", output_prefix="mc_func")
 
@@ -500,21 +510,21 @@ if __name__ == "__main__":
 
   #Creating a mask to be applied on functional data using the mean baseline image
   if os.path.exists("mask_mean_mc_func.nii.gz"):
-    print("Mask Image exists.")
+    print(f"{bcolors.OKGREEN}Mask Image exists.{bcolors.ENDC}")
   else:
-    print("Mask Image does not exist. Please create the mask and save it as mask_mean_mc_func.nii.gz")
+    print(f"{bcolors.FAIL}Mask Image does not exist. Please create the mask and save it as mask_mean_mc_func.nii.gz{bcolors.ENDC}")
     subprocess.run(["fsleyes", "middle_vol.nii.gz"])
 
   if os.path.exists("mask_mean_mc_func_cannulas.nii.gz"):
-    print("Mask Image exists.")
+    print(f"{bcolors.OKGREEN}Mask Image including cannulas exist.{bcolors.ENDC}")
   else:
-    print("Mask Image does not exist. Please create the mask that also includes cannulasand save it as mask_mean_mc_func_cannulas.nii.gz")
+    print(f"{bcolors.FAIL}Mask Image does not exist. Please create the mask that also includes cannulas and save it as mask_mean_mc_func_cannulas.nii.gz.{bcolors.ENDC}")
     shutil.copyfile("mask_mean_mc_func.nii.gz", "mask_mean_mc_func_cannulas.nii.gz")
     subprocess.run(["fsleyes", "mean_image.nii.gz" , "mask_mean_mc_func_cannulas.nii.gz"])
   
-  
-
   # Setting up analysis directory
+  print_header("Setting up Analysis Directory", bcolors.HEADER)
+
   path_current_analysis = os.path.join(analysed_path, str(func_scan_number) + SequenceName, datetime.datetime.now().strftime('%Y_%m_%d_%H%M%S') + "_" + getpass.getuser())
   os.makedirs(path_current_analysis)
   shutil.copy(os.path.join(os.getcwd(), "mc_func.nii.gz"), os.path.join(path_current_analysis))
@@ -523,12 +533,12 @@ if __name__ == "__main__":
   cwd = os.getcwd()
 
   #Applying temporal smoothing to the motion corrected functional data to see the temporal signatures
-  
+  print_header("Applying temporal smoothing to the motion corrected functional data to see the temporal signatures", bcolors.HEADER)
   smooth_movavg("mc_func.nii.gz", "temporal_smoothed_mc_func.nii.gz", 60, 1.0)
 
   # Opening fsleyes to view the temporally smoothed motion corrected functional data
-  print("Choose your baseline and signal volumes from the temporally smoothed motion corrected functional data.")
-  # subprocess.run(["fsleyes", "temporal_smoothed_mc_func.nii.gz"])
+  print_statement("Choose your baseline and signal volumes from the temporally smoothed motion corrected functional data.", bcolors.NOTIFICATION)
+  subprocess.run(["fsleyes", "temporal_smoothed_mc_func.nii.gz"])
 
   #Choosing signal and baseline volume indices from the temporally smoothed motion corrected functional data
   base_start = 400
@@ -537,23 +547,26 @@ if __name__ == "__main__":
   # sig_start  = int(input("Enter signal start Volume index: "))
   base_end   = base_start + win_dur
   sig_end   = sig_start + win_dur
-  print (f"Baseline Volume Indices: {base_start} to {base_end}")
-  print (f"Signal Volume Indices: {sig_start} to {sig_end}")
 
   compute_mean_range(input_file="temporal_smoothed_mc_func.nii.gz", prefix=f"mean_baseline_image_{base_start}_to_{base_end}.nii.gz", start_idx=base_start, end_idx=base_end)
   os.remove(f"mean_baseline_image_{base_start}_to_{base_end}.nii.gz")
 
   #Masking temporally smoothed motion corrected functional data using the created mask
+  print_header("Masking temporally smoothed motion corrected functional data using the created mask", bcolors.HEADER)
   masking_file(input_file="temporal_smoothed_mc_func.nii.gz", mask_file="mask_mean_mc_func.nii.gz", output_file="cleaned_mc_func.nii.gz") #creating cleaned motion corrected functional data from temporal smoothed data for further processing
   masking_file(input_file="mc_func.nii.gz", mask_file="mask_mean_mc_func.nii.gz", output_file="raw_cleaned_mc_func.nii.gz") #creating cleaned motion corrected functional data from raw data for different processing
 
   #Estimating tSNR using the cleaned motion corrected functional data
+  print_header("Estimating tSNR using the cleaned motion corrected functional data", bcolors.HEADER)
   tSNR(input_file="cleaned_mc_func.nii.gz", reference_vol=100, output_file="tSNR_mc_func.nii.gz", size=400)
 
   # Applying isotropic spatial smoothing on cleaned motion corrected functional data
+  print_header("Applying isotropic spatial smoothing on cleaned_mc_func.nii.gz", bcolors.HEADER)
   spatial_smoothing('cleaned_mc_func.nii.gz', 'smoothed_cleaned_mc_func.nii.gz', float(0.7))
 
   #Generating Signal Change Map and Signal Change Time Series
+  print_header("Generating Signal Change Map and Signal Change Time Series", bcolors.HEADER)
+
   compute_mean_range(input_file="smoothed_cleaned_mc_func.nii.gz", prefix=f"mean_baseline_image_{base_start}_to_{base_end}.nii.gz", start_idx=base_start, end_idx=base_end)
   compute_mean_range(input_file="smoothed_cleaned_mc_func.nii.gz", prefix=f"mean_signal_image_{sig_start}_to_{sig_end}.nii.gz", start_idx=sig_start, end_idx=sig_end)
 
@@ -562,6 +575,9 @@ if __name__ == "__main__":
   os.remove("tmp_signal_change_map.nii.gz")
   
  # Creating time series of signal change
+
+  print_header("Creating time series of signal change", bcolors.HEADER)
+
   compute_mean_range(input_file="smoothed_cleaned_mc_func.nii.gz", prefix=f"mean_sm_baseline_image_{base_start}_to_{base_end}.nii.gz", start_idx=base_start, end_idx=base_end)
   signal_change_map("smoothed_cleaned_mc_func.nii.gz", f"mean_sm_baseline_image_{base_start}_to_{base_end}.nii.gz", "tmp_signal_change_time_series.nii.gz")
   masking_file("tmp_signal_change_time_series.nii.gz", "mask_mean_mc_func.nii.gz", "norm_cleaned_mc_func.nii.gz")
@@ -569,31 +585,34 @@ if __name__ == "__main__":
 
   #Cleaning the structural image by masking it with a manually created mask
   
+  print_header("Cleaning the structural image by manually creating mask", bcolors.HEADER)
   params_struct = func_param_extract(os.path.join(in_path, struct_scan_number), export_env=True)
   seq_name_struct = params_struct["SequenceName"]
   struct_coreg_dir = os.path.join(analysed_path, str(struct_scan_number) + seq_name_struct)
 
   structural_file_for_coregistration = os.path.join(struct_coreg_dir, "cleaned_anatomy.nii.gz")
   if os.path.exists(os.path.join(struct_coreg_dir, "cleaned_anatomy.nii.gz")):
-    print("Structural Image for Coregistration exists.")
+    print_statement("Structural Image for Coregistration exists.", bcolors.OKGREEN)
   else:
-    print("Please create a mask for the structural image and save it as mask_anatomy.nii.gz")
+    print_statement("Please create a mask for the structural image and save it as mask_anatomy.nii.gz", bcolors.NOTIFICATION)
     subprocess.run(["fsleyes", os.path.join(struct_coreg_dir, "G1_cp_resampled.nii.gz")])
     masking_file(os.path.join(struct_coreg_dir, "G1_cp_resampled.nii.gz"), os.path.join(struct_coreg_dir, "mask_anatomy.nii.gz"), structural_file_for_coregistration)
 
   masking_file(os.path.join(analysed_path, str(func_scan_number) + SequenceName, "middle_vol.nii.gz"), os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_mc_func_cannulas.nii.gz"), "cleaned_mean_mc_func_cannulas.nii.gz")
   masking_file(os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mc_func.nii.gz"), os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_mc_func_cannulas.nii.gz"), "cleaned_mc_func_cannulas.nii.gz")
-  # align_epi_anat_afni(os.path.join(struct_coreg_dir, "G1_cp_resampled.nii.gz"), "cleaned_mean_mc_func_cannulas.nii.gz")
+  
   #Coregistering functional time series and functional signal change map to structural image
+  print_header("Coregistering functional time series and functional signal change map to structural image", bcolors.HEADER)
   affine_matrix_file = ("mean_func_struct_aligned.aff12.1D")
   if os.path.exists(affine_matrix_file):
-    print("Affine Matrix to coregister Signal Change Map exists.")
+    print_statement("Affine Matrix to coregister Signal Change Map exists.", bcolors.OKGREEN)
   else:
-    print("Estimating Affine Matrix to coregister Signal Change Map.")
+    print_statement("Estimating Affine Matrix to coregister Signal Change Map.", bcolors.NOTIFICATION)
     coregistration_afni(input_file1="cleaned_mean_mc_func_cannulas.nii.gz", input_file2="cleaned_SCM_func.nii.gz", reference_file= structural_file_for_coregistration, output_file1="mean_func_struct_aligned.nii.gz", output_file2="signal_change_map_coregistered_structural_space.nii.gz", estimate_affine=True, apply_affine=True, affine_mat="mean_func_struct_aligned.aff12.1D")
 
   #Coregistering functional time series and generating signal change map from coregistered data
 
+  print_header("Coregistering functional time series and generating signal change map from coregistered data", bcolors.HEADER)
   coregistration_afni(input_file1=None, input_file2="cleaned_mc_func_cannulas.nii.gz", reference_file= structural_file_for_coregistration, output_file1=None, output_file2="fMRI_coregistered_to_struct.nii.gz", estimate_affine=False, apply_affine=True, affine_mat="mean_func_struct_aligned.aff12.1D")
 
   mean = fsl.maths.MeanImage()
@@ -601,7 +620,7 @@ if __name__ == "__main__":
   mean.inputs.out_file = "mean_fMRI_coregistered_to_struct.nii.gz"
   mean.run()
 
-#   spatial_smoothing("fMRI_coregistered_to_struct.nii.gz", "sm_fMRI_coregistered_to_struct.nii.gz", fwhm=0.12)
+# spatial_smoothing("fMRI_coregistered_to_struct.nii.gz", "sm_fMRI_coregistered_to_struct.nii.gz", fwhm=0.12)
 
   if os.path.exists(os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_fMRI_coregistered_to_struct.nii.gz")):
     print("Mask file mask_mean_fMRI_coregistered_to_struct.nii.gz exists.")
@@ -609,8 +628,6 @@ if __name__ == "__main__":
     print("Please create a mask and save it as mask_mean_fMRI_coregistered_to_struct.nii.gz")
     subprocess.run(["fsleyes", "mean_fMRI_coregistered_to_struct.nii.gz"])
     shutil.copyfile(os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_fMRI_coregistered_to_struct.nii.gz"), "mask_mean_fMRI_coregistered_to_struct.nii.gz")
-
-  # spatial_smoothing('fMRI_coregistered_to_struct.nii.gz', 'sm_fMRI_coregistered_to_struct.nii.gz', float(0.2))
 
   masking_file("fMRI_coregistered_to_struct.nii.gz", os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_fMRI_coregistered_to_struct.nii.gz"), "sm_fMRI_for_scm.nii.gz")
 
@@ -621,14 +638,50 @@ if __name__ == "__main__":
   masking_file(f"sm_coreg_func_Static_Map_{base_start}_to_{base_end}_and_{sig_start}_to_{sig_end}.nii.gz", os.path.join(analysed_path, str(func_scan_number) + SequenceName, "mask_mean_fMRI_coregistered_to_struct.nii.gz"), "cleaned_sm_scm_from_coregistered_ts.nii.gz")
 
 
-#   #Markng ROIs and saving time courses
+  #Marking ROIs and saving time courses
 
-#   print("Please create ROIs on the functional time series and save them in the following particular format:") 
-#   print("roi_{what protein/aav is there}_{is it direct injection or aav}_{analyte injeted}_{hemisphere side}.nii.gz")
-#   print("For Example: if GCaMP6f is directly injected in the left hemisphere and dopamine is injected in the right hemisphere following a viral injection, then the following ROIs should be created:") 
-#   print("roi_GCaMP6f_direct_left.nii.gz or roi_dopamine_aav_right.nii.gz")  
+  print_header("Marking ROIs and saving time courses", bcolors.HEADER)
 
-#   subprocess.run(["fsleyes", "mean_fMRI_coregistered_to_struct.nii.gz"])
+  print_statement("Please create ROIs on the functional time series and save them in the following particular format:", bcolors.NOTIFICATION) 
+  print_statement("roi_{what protein/aav is there}_{is it direct injection or aav}_{analyte injeted}_{hemisphere side}.nii.gz", bcolors.NOTIFICATION)
+  print_statement("For Example: if GCaMP6f is directly injected in the left hemisphere and dopamine is injected in the right hemisphere following a viral injection, then the following ROIs should be created:", bcolors.NOTIFICATION) 
+  print_statement("roi_GCaMP6f_direct_left.nii.gz or roi_dopamine_aav_right.nii.gz", bcolors.FAIL)  
 
-#   time_course_extraction(roi_file, func_file, output_file)
+  subprocess.run(["fsleyes", "mean_fMRI_coregistered_to_struct.nii.gz"])
+
+  files_list = os.listdir(cwd)
+  roi_for_psc = [file for file in files_list if file.startswith("roi_") and file.endswith(".nii.gz")]
+  for files in roi_for_psc:
+    # skip if the file isn't a text file
+      roi_file = files
+      print_statement(f"Extracting time course for ROI: {roi_file}", bcolors.NOTIFICATION)
+      output_file = f"time_course_{roi_file.replace('.nii.gz', '.txt')}"
+      time_course_extraction(roi_file, "fMRI_coregistered_to_struct.nii.gz", output_file)
+      print_statement(f"[OK] Time course saved → {output_file}", bcolors.OKGREEN)
+
+      #Creating Percent Signal Change graphs for each ROI
+      id_arr = list(range(0, n_vols, tr))
+      time_series = np.loadtxt(output_file)
+      # baseline = np.mean(time_series[base_start:base_end])
+      baseline = np.mean(time_series[base_start:base_end])
+      psc = ((time_series - baseline) / baseline) * 100
+      print_statement(f"[OK] Percent Signal Change calculated for ROI: {roi_file}", bcolors.OKGREEN)
+      print("Time Series is:", psc)
+      np.savetxt(f"PSC_time_series_{roi_file.replace('.nii.gz', '.txt')}", psc)
+      plt.figure(figsize=(10, 5))
+      plt.plot(id_arr, psc, label='Percent Signal Change')
+      plt.axvspan(base_start, base_end, color='green', alpha=0.3, label='Baseline Period')
+      plt.axvspan(sig_start, sig_end, color='blue', alpha=0.3, label='Signal Period')
+      plt.title(f'Percent Signal Change Time Series for {roi_file}')
+      plt.xlabel('Time Points (Volumes)')
+      plt.ylabel('MRI Signal Change (%)')
+      plt.legend()
+      plt.tight_layout()
+      graph_file = f"PSC_Time_Series_{roi_file.replace('.nii.gz', '.svg')}"
+      plt.savefig(graph_file, dpi=1200)
+      print_statement(f"[OK] Percent Signal Change graph saved → {graph_file}", bcolors.OKGREEN)   
+
+            
+
+
 
