@@ -188,28 +188,6 @@ def plot_motion_parameters(input_file):
     plt.tight_layout()
     plt.savefig("motion_translations.svg", dpi=1200)
 
-def run_3dvolreg(base_vol, input_vol, output_prefix, motion_file="motion.1D", matrix_dir="mats", rms_file="rmsabs.1D"):
-    
-    cmd = [
-        "3dvolreg",
-        "-prefix", output_prefix,
-        "-base", base_vol,
-        "-verbose",
-        "-1Dfile", motion_file,
-        "-1Dmatrix_save", matrix_dir,
-        "-linear",
-        "-twopass",
-        "-float",
-        "-maxdisp1D", rms_file,
-        input_vol,
-    ]
-
-    print("[INFO] Running 3dvolreg:")
-    print(" ".join(cmd))
-
-    subprocess.run(cmd, check=True)
-    print("[OK] Motion correction completed")
-
 def compute_mean_range(input_file, prefix, start_idx, end_idx):
     
     afni_cmd = ["3dTstat", "-mean", "-prefix", prefix, f"{input_file}[{start_idx}..{end_idx}]"]
