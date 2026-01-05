@@ -1,9 +1,8 @@
-# molecular_fmri_data_analysis
-
+Setting up script for Data Analysis
 
 # Prerequisites
 
-Make sure you have the following installed:
+## Make sure you have the following installed:
 
 Python (3.8 or newer)
 
@@ -11,15 +10,15 @@ Visual Studio Code
 
 pip (comes with Python)
 
-To check Python installation:
+## To check Python installation:
 
 python --version
-
 
 or
 
 python3 --version
 
+# Follow the step to run jupyter notebook in VSC
 🛠 Step 1: Install Required VS Code Extensions
 
 Open VS Code → Extensions (Ctrl+Shift+X) and install:
