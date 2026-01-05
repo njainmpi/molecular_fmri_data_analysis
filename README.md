@@ -84,4 +84,8 @@ Output should match your selected Python path.
 All the that are needed to run the data analysis script have been listed out in the 
 requirements file. TO install these dependencies, run the following command: 
 
- - pip3 install -r ~/Desktop/Github/molecular_fmri_data_analysis/requirements.txt
+ - pip3 install -r requirements.txt
+ 
+ 
+⚠️ Please note that AFNI and FSL must be installed separately and available in your system PATH.
+Nipype only provides Python interfaces to these tools.
