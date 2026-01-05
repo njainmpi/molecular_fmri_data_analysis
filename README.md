@@ -77,3 +77,11 @@ VS Code will automatically open it in Jupyter mode.
 	- print(sys.executable)
 
 Output should match your selected Python path.
+
+
+# Installing python dependencies to run script
+
+All the that are needed to run the data analysis script have been listed out in the 
+requirements file. TO install these dependencies, run the following command: 
+
+ - pip3 install -r ~/Desktop/Github/molecular_fmri_data_analysis/requirements.txt
