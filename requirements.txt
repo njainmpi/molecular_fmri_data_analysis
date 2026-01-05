@@ -1,0 +1,15 @@
+#Data Handling
+pandas = 2.2.1
+numpy = 1.26.4
+
+#Neuroimaging Data Look Out
+nibabel = 5.2.1
+nipype = 1.10.4
+brkraw = 0.4.0
+
+#Data Plotting
+matplotlib = 3.9.2
+
+#Statistics and Data Analysis
+scipy = 1.13.1
+statsmodel = 0.14.6
