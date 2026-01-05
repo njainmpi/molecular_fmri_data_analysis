@@ -6,6 +6,7 @@ numpy = 1.26.4
 nibabel = 5.2.1
 nipype = 1.10.4
 brkraw = 0.4.0
+nilearn = 0.10.4
 
 #Data Plotting
 matplotlib = 3.9.2
@@ -13,3 +14,14 @@ matplotlib = 3.9.2
 #Statistics and Data Analysis
 scipy = 1.13.1
 statsmodel = 0.14.6
+
+#Jupyter Notebook Special
+nbstripout = 0.8.2
+ipywidgets = 8.1.8
+ipython = 8.18.1
+ipyfilechooser = 0.6.0
+
+
+#Database Connect and Establish
+sqlalchemy = 2.0.45
+
