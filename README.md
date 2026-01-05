@@ -60,8 +60,7 @@ VS Code will automatically open it in Jupyter mode.
 * Click Kernel Selector (top-right)
 * Choose:
 	* Python (your-selected-interpreter)
-	Example:
-	Python 3.11 (miniforge)
+	[] for example: Python 3.11 (miniforge)
 
 ✔ Your notebook is now linked to your installed Python.
 
@@ -74,7 +73,7 @@ VS Code will automatically open it in Jupyter mode.
 ## 🧪 Step 7: Test Installation
 
 * Run this in a notebook cell:
-	import sys
-	print(sys.executable)
+	[] import sys
+	[] print(sys.executable)
 
 Output should match your selected Python path.
